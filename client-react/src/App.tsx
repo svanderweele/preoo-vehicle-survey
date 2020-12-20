@@ -1,7 +1,5 @@
-// import logo from "./logo.svg";
 import SurveyForm from "./SurveyForm";
 
-//TODO: Integrate FlowJS
 //TODO: Use a Context?
 
 function App() {
