@@ -1,7 +1,6 @@
 import { HttpException } from '@nestjs/common';
-
-export type DatabaseErrorCodes = 'DATABASE_CONNECTION_ERROR';
-export type SurveyErrorCode = 'SURVEY_NOT_FOUND';
+import { DatabaseErrorCodes } from 'src/api/database/database.types';
+import { SurveyErrorCode } from 'src/api/survey/survey.types';
 
 type ErrorCode = DatabaseErrorCodes | SurveyErrorCode | 'MONGO_ERROR';
 

@@ -1,6 +1,7 @@
 import { Body, Controller, Post } from '@nestjs/common';
 import { ResponseGeneric } from '../ResponseGeneric';
-import { SurveyIds, SurveyService } from './survey.service';
+import { SurveyService } from './survey.service';
+import { SurveyIds } from './survey.types';
 
 export interface RequestSubmitSurvey {
   surveyId: SurveyIds;

@@ -1,16 +1,14 @@
 import { Injectable } from '@nestjs/common';
-import { CollectionNames, insert } from 'src/utiltiies/DatabaseConnector';
+import { DatabaseService } from '../database/database.service';
+import { CollectionNames } from '../database/database.types';
 import { SurveyException } from './survey.exception';
-
-export type SurveyIds = 'survey_vehicle_01';
-
-export interface SurveyData {
-  age: number;
-}
+import { SurveyIds } from './survey.types';
 
 @Injectable()
 export class SurveyService {
-  async save(surveyId: SurveyIds, surveyData: SurveyData): Promise<boolean> {
+  constructor(private readonly databaseService: DatabaseService) {}
+
+  async save(surveyId: SurveyIds, surveyData: any): Promise<boolean> {
     let collectionName: CollectionNames;
     switch (surveyId) {
       case 'survey_vehicle_01':
@@ -21,7 +19,7 @@ export class SurveyService {
         throw new SurveyException('SURVEY_NOT_FOUND');
     }
 
-    await insert<SurveyData>(collectionName, surveyData);
+    await this.databaseService.insert<any>(collectionName, surveyData);
 
     return true;
   }
