@@ -5,6 +5,7 @@ import { SurveyIds } from './survey.types';
 
 export interface RequestSubmitSurvey {
   surveyId: SurveyIds;
+  groupId: number;
   data: any;
 }
 
@@ -16,7 +17,7 @@ export class SurveyController {
   async postSurvey(
     @Body() body: RequestSubmitSurvey,
   ): Promise<ResponseGeneric> {
-    await this.surveyService.save(body.surveyId, body.data);
+    await this.surveyService.save(body.surveyId, body.groupId, body.data);
 
     return { success: 1, message: 'Survey save successfully' };
   }
