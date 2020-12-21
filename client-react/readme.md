@@ -5,6 +5,11 @@ I opted for using ReactJS without Next since we will only have one page in this 
 ## Running the app
 
 ```bash
+# setup
+$ yarn or npm i
+$ yarn start
+
+
 # development
 $ yarn start
 
