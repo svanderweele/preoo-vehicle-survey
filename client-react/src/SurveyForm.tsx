@@ -1,14 +1,12 @@
 import React, { ChangeEvent, useEffect } from "react";
 import { useState } from "react";
-import questions, { RequestSaveSurvey } from "./Questions";
+import { RequestSaveSurvey, shouldOptOut } from "./Questions";
 import AllQuestions, {
   ChoiceQuestion,
   InputQuestion,
   Question,
 } from "./Questions";
 
-//TODO: Add remaining questions
-//TODO: Add opt out of survey based on answers
 //TODO: Added final question Model/Make plus regex
 //TODO: Compile Graphs
 
@@ -16,16 +14,28 @@ export default function SurveyForm() {
   const [questionIndex, setQuestionIndex] = useState<number>(0);
   const [questions, setQuestions] = useState<Question[]>(AllQuestions);
 
-  console.log(questions);
-
-  if (questionIndex >= questions.length) {
-    return <EndOfSurvey questions={questions} />;
-  }
-
   const question = questions[questionIndex];
 
+  if (questionIndex >= questions.length) {
+    return (
+      <EndOfSurvey
+        questions={questions}
+        message={"Thank you for taking the time to take the survey."}
+      />
+    );
+  }
+
+  if (questionIndex > 0) {
+    const optOutMessage = shouldOptOut({
+      lastQuestionAnswered: questions[questionIndex - 1],
+      questions: questions,
+    });
+    if (optOutMessage) {
+      return <EndOfSurvey questions={questions} message={optOutMessage} />;
+    }
+  }
+
   const submitAnswer = (value: string) => {
-    console.log(questions);
     question.answer = value;
     questions[questionIndex] = question;
     setQuestions(questions);
@@ -96,7 +106,7 @@ export default function SurveyForm() {
   );
 }
 
-function EndOfSurvey(props: { questions: Question[] }) {
+function EndOfSurvey(props: { questions: Question[]; message: string }) {
   useEffect(() => {
     const save = async () => {
       const requestBody: RequestSaveSurvey = new RequestSaveSurvey(
@@ -117,7 +127,7 @@ function EndOfSurvey(props: { questions: Question[] }) {
     };
 
     save();
-  }, []);
+  }, [props.questions]);
 
   return (
     <div className="container p-4">
@@ -138,14 +148,13 @@ function EndOfSurvey(props: { questions: Question[] }) {
                     ></div>
                   </div>
                 </div>
-                <div className="d-flex justify-content-center align-items-center ms-2">
-                  <small className="text-muted"> of 09</small>
-                </div>
               </div>
             </div>
             <div className="row mt-3 px-2">
               <h5 className="px-0">
-                Thanks for taking the time to take the survey!
+                {props.message
+                  ? props.message
+                  : "Thanks for taking the time to take the survey!"}
               </h5>
             </div>
           </div>

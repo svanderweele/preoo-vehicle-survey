@@ -1,27 +1,12 @@
-type QuestionKey = "age" | "gender" | "doesOwnDrivingLicense" | "isFirstCar";
-
-/*
-"surveyId": "survey_vehicle_01",
-	"data": {
-		"age": 24,
-		"gender": "Male",
-		"doesOwnDrivingLicense": true,
-		"isFirstCar": false,
-		"driveTrainPreference": "FWD",
-		"isWorriedAboutFuelEmission": true,
-		"carCountInFamily": 3,
-		"carData": [
-			{
-				"make": "Vauxhall",
-				"model": "Mocha"
-			},
-			{
-				"make": "Toyota",
-				"model": "Vitz"
-			}
-		]
-	}
-*/
+type QuestionKey =
+  | "age"
+  | "gender"
+  | "doesOwnDrivingLicense"
+  | "isFirstCar"
+  | "driveTrainPreference"
+  | "isWorriedAboutFuelEmission"
+  | "carCountInFamily"
+  | "carData";
 
 export interface RequestSaveSurvey {
   surveyId: string;
@@ -41,22 +26,62 @@ export class RequestSaveSurvey {
   constructor(surveyId: "survey_vehicle_01", questions: Question[]) {
     this.surveyId = surveyId;
     this.data = {
-      age: this.getAnswer(questions, "age"),
-      gender: this.getAnswer(questions, "gender"),
-      doesOwnDrivingLicense: this.getAnswer(questions, "doesOwnDrivingLicense"),
-      isFirstCar: this.getAnswer(questions, "isFirstCar"),
+      age: getAnswer(questions, "age"),
+      gender: getAnswer(questions, "gender"),
+      doesOwnDrivingLicense: getAnswer(questions, "doesOwnDrivingLicense"),
+      isFirstCar: getAnswer(questions, "isFirstCar"),
+      driveTrainPreference: getAnswer(questions, "driveTrainPreference"),
+      isWorriedAboutFuelEmission: getAnswer(
+        questions,
+        "isWorriedAboutFuelEmission"
+      ),
+      carCountInFamily: getAnswer(questions, "carCountInFamily"),
     };
   }
+}
 
-  getAnswer(questions: Question[], key: QuestionKey): string | undefined {
-    const matching = questions.filter((question) => question.key === key);
+function getAnswer(
+  questions: Question[],
+  key: QuestionKey
+): string | undefined {
+  const matching = questions.filter((question) => question.key === key);
 
-    if (matching.length === 0) {
-      return undefined;
-    }
-
-    return matching[0].answer;
+  if (matching.length === 0) {
+    return undefined;
   }
+
+  return matching[0].answer;
+}
+
+export function shouldOptOut({
+  lastQuestionAnswered,
+  questions,
+}: {
+  lastQuestionAnswered: Question;
+  questions: Question[];
+}): string | null {
+  if (lastQuestionAnswered.key === "gender") {
+    const age = getAnswer(questions, "age");
+    if (age && parseInt(age) < 18) {
+      return "Thank you for taking the time to submit the survey.";
+    }
+  }
+
+  if (lastQuestionAnswered.key === "doesOwnDrivingLicense") {
+    const doesOwnDrivingLicense = getAnswer(questions, "doesOwnDrivingLicense");
+    if (doesOwnDrivingLicense && doesOwnDrivingLicense !== "Yes") {
+      return "Thank you for taking the time to submit the survey.";
+    }
+  }
+
+  if (lastQuestionAnswered.key === "isFirstCar") {
+    const isFirstCar = getAnswer(questions, "isFirstCar");
+    if (isFirstCar && isFirstCar === "Yes") {
+      return "We are targeting more experienced clients, thank you for your interest!";
+    }
+  }
+
+  return null;
 }
 
 export class Question {
@@ -64,16 +89,19 @@ export class Question {
   key: QuestionKey;
   type: "input" | "choice" | "car_select";
   answer: string | undefined;
+  canShow?: (questions: Question[]) => boolean;
 
   constructor(
     key: QuestionKey,
     title: string,
-    type: "input" | "choice" | "car_select"
+    type: "input" | "choice" | "car_select",
+    canShow?: (questions: Question[]) => boolean
   ) {
     this.title = title;
     this.type = type;
     this.answer = undefined;
     this.key = key;
+    this.canShow = canShow;
   }
 }
 
@@ -87,9 +115,10 @@ export class InputQuestion extends Question {
     title: string,
     validate: (value: string) => boolean,
     regex: RegExp,
-    validationMessage: string
+    validationMessage: string,
+    canShow?: (questions: Question[]) => boolean
   ) {
-    super(key, title, "input");
+    super(key, title, "input", canShow);
     this.validate = validate;
     this.regex = regex;
     this.validationMessage = validationMessage;
@@ -99,8 +128,13 @@ export class InputQuestion extends Question {
 export class ChoiceQuestion extends Question {
   choices: string[];
 
-  constructor(key: QuestionKey, title: string, choices: string[]) {
-    super(key, title, "choice");
+  constructor(
+    key: QuestionKey,
+    title: string,
+    choices: string[],
+    canShow?: (questions: Question[]) => boolean
+  ) {
+    super(key, title, "choice", canShow);
     this.choices = choices;
   }
 }
@@ -125,7 +159,37 @@ const questions: Question[] = [
     ["Yes", "No, I prefer to use other transport"]
   ),
 
-  new ChoiceQuestion("isFirstCar", "Is this your first car?", ["Yes", "No"]),
+  new ChoiceQuestion(
+    "isFirstCar",
+    "Is this your first car?",
+    ["Yes", "No"],
+    (questions) => {
+      const age = getAnswer(questions, "age");
+      if (age) {
+        const parsedAge = parseInt(age);
+        return parsedAge >= 18 && parsedAge <= 25;
+      }
+
+      return true;
+    }
+  ),
+  new ChoiceQuestion(
+    "driveTrainPreference",
+    "Which drivetrain do you prefer?",
+    ["FWD", "RWD", "I don't know"]
+  ),
+  new ChoiceQuestion(
+    "isWorriedAboutFuelEmission",
+    "Are you worried about fuel emissions?",
+    ["Yes", "No"]
+  ),
+  new InputQuestion(
+    "carCountInFamily",
+    "How many cars do you have in your family?",
+    (value) => true,
+    /^(|[0-9])+$/,
+    ""
+  ),
 ];
 
 export default questions;

@@ -1,6 +1,6 @@
 import SurveyForm from "./SurveyForm";
+import "./styles.css";
 
-//TODO: Use a Context?
 //TODO: Integrate ESLint
 
 function App() {
