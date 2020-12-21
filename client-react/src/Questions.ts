@@ -192,7 +192,7 @@ const questions: Question[] = [
       const age = getAnswer(questions, "age");
       if (age) {
         const parsedAge = parseInt(age);
-        return parsedAge >= 18 && parsedAge <= 25;
+        return parsedAge > 25;
       }
 
       return true;
