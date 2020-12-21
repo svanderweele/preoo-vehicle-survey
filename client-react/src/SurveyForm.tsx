@@ -9,7 +9,7 @@ import AllQuestions, {
 } from "./Questions";
 
 export default function SurveyForm() {
-  const [questionIndex, setQuestionIndex] = useState<number>(6);
+  const [questionIndex, setQuestionIndex] = useState<number>(0);
   const [questions, setQuestions] = useState<Question[]>(AllQuestions);
 
   const question = questions[questionIndex];
