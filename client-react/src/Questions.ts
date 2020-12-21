@@ -1,5 +1,3 @@
-import { group } from "console";
-
 type QuestionKey =
   | "age"
   | "gender"
@@ -52,6 +50,11 @@ export class RequestSaveSurvey {
       ),
       carCountInFamily: getAnswer(questions, "carCountInFamily"),
     };
+
+    const carDataString = getAnswer(questions, "carData");
+    if (carDataString) {
+      this.data.carData = JSON.parse(carDataString);
+    }
   }
 }
 
@@ -113,7 +116,7 @@ export class Question {
   title: string;
   key: QuestionKey;
   type: "input" | "choice" | "car_select";
-  answer: string | undefined;
+  answer: any | undefined;
   canShow?: (questions: Question[]) => boolean;
 
   constructor(
@@ -161,6 +164,29 @@ export class ChoiceQuestion extends Question {
   ) {
     super(key, title, "choice", canShow);
     this.choices = choices;
+  }
+}
+
+export class CarMakeQuestion extends Question {
+  makes: string[];
+  validate: (
+    make: string,
+    model: string
+  ) => { message: string; isValid: boolean };
+
+  constructor(
+    key: QuestionKey,
+    title: string,
+    makes: string[],
+    validate: (
+      make: string,
+      model: string
+    ) => { message: string; isValid: boolean },
+    canShow?: (questions: Question[]) => boolean
+  ) {
+    super(key, title, "car_select", canShow);
+    this.makes = makes;
+    this.validate = validate;
   }
 }
 
@@ -214,6 +240,25 @@ const questions: Question[] = [
     (value) => true,
     /^(|[0-9])+$/,
     ""
+  ),
+  new CarMakeQuestion(
+    "carData",
+    "Please list your family's vehicles.",
+    ["BMW", "Audi", "Vauxhall", "Toyota", "Tesla"],
+    (make: string, model: string) => {
+      let response = { isValid: true, message: "" };
+      if (make === "BMW") {
+        const firstPattern = /^(M)?(([0-9]{3})|(([0-9]{3})(i|d){1}))$/;
+        const secondPattern = /^(X|Z)\d{1}$/;
+
+        if (!(firstPattern.test(model) || secondPattern.test(model))) {
+          response.isValid = false;
+          response.message = "Invalid Model Suggested";
+        }
+      }
+
+      return response;
+    }
   ),
 ];
 

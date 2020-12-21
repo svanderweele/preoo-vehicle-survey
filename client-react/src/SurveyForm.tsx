@@ -1,6 +1,6 @@
 import React, { ChangeEvent, useEffect } from "react";
 import { useState } from "react";
-import { RequestSaveSurvey, shouldOptOut } from "./Questions";
+import { CarMakeQuestion, RequestSaveSurvey, shouldOptOut } from "./Questions";
 import AllQuestions, {
   ChoiceQuestion,
   InputQuestion,
@@ -8,11 +8,8 @@ import AllQuestions, {
   SurveyGroups,
 } from "./Questions";
 
-//TODO: Added final question Model/Make plus regex
-//TODO: Compile Graphs
-
 export default function SurveyForm() {
-  const [questionIndex, setQuestionIndex] = useState<number>(0);
+  const [questionIndex, setQuestionIndex] = useState<number>(6);
   const [questions, setQuestions] = useState<Question[]>(AllQuestions);
 
   const question = questions[questionIndex];
@@ -20,7 +17,6 @@ export default function SurveyForm() {
   useEffect(() => {
     const question = questions[questionIndex];
     if (question && question.canShow && question.canShow(questions)) {
-      console.log(question && question.canShow(questions));
       setQuestionIndex((index) => index + 1);
     }
   }, [questionIndex, questions]);
@@ -79,6 +75,20 @@ export default function SurveyForm() {
           options={quest.choices.map((answer, index) => {
             return { index: index, value: answer };
           })}
+        />
+      );
+    }
+    if (question.type === "car_select") {
+      const quest = question as CarMakeQuestion;
+      const totalCars = parseInt(questions[questionIndex - 1].answer);
+      return (
+        <CarMakeInput
+          validate={quest.validate}
+          makes={quest.makes}
+          totalCars={totalCars}
+          onNextClick={(data: { make: string; model: string }[]) => {
+            submitAnswer(JSON.stringify(data));
+          }}
         />
       );
     }
@@ -205,7 +215,7 @@ function Input({
 
   const [isValid, setIsValid] = useState<boolean>(false);
 
-  useEffect(() => setIsValid(validate(value)), [value]);
+  useEffect(() => setIsValid(validate(value)), [value, validate]);
 
   return (
     <div className="w-100">
@@ -342,3 +352,155 @@ const Colors = {
     default: "#c9c9c9",
   },
 };
+
+function CarMakeInput({
+  makes,
+  totalCars,
+  validate,
+  onNextClick,
+}: {
+  makes: string[];
+  totalCars: number;
+  validate: (
+    make: string,
+    model: string
+  ) => { isValid: boolean; message: string };
+  onNextClick: (value: { make: string; model: string }[]) => void;
+}) {
+  const [carData, setCarData] = useState<{ make: string; model: string }[]>([]);
+  const [isValid, setValid] = useState<boolean>(false);
+
+  const onUpdate = (make: string, model: string, index: number) => {
+    carData[index] = { make: make, model: model };
+    setCarData(carData);
+
+    let isValid = true;
+    for (let index = 0; index < carData.length; index++) {
+      const car = carData[index];
+      if (!validate(car.make, car.model).isValid) {
+        isValid = false;
+        break;
+      }
+    }
+
+    setValid(isValid);
+  };
+
+  return (
+    <div className="w-full">
+      {[...Array(totalCars)].map((value: number, index: number) => (
+        <CarMakeSelect
+          makes={makes}
+          onChange={(make: string, model: string) =>
+            onUpdate(make, model, index)
+          }
+          validate={validate}
+        />
+      ))}
+      <div>
+        <button
+          style={{
+            backgroundColor: Colors.background.selected,
+            borderColor: Colors.background.default,
+            outline: "none",
+          }}
+          className="rounded mt-2 border-0 px-2"
+          onClick={() => onNextClick(carData)}
+          disabled={!isValid}
+        >
+          Next
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function CarMakeSelect({
+  makes,
+  onChange,
+  validate,
+}: {
+  makes: string[];
+  onChange: (make: string, model: string) => void;
+  validate: (
+    make: string,
+    model: string
+  ) => { isValid: boolean; message: string };
+}) {
+  const [make, setMake] = useState<string>(makes[0]);
+  const [model, setModel] = useState<string>("");
+  const [validation, setValidation] = useState<{
+    message: string;
+    isValid: boolean;
+  }>();
+
+  useEffect(() => {
+    onChange(make, model);
+    setValidation(validate(make, model));
+  }, [make, model, onChange, validate]);
+
+  const onChangeMake = (evt: ChangeEvent<HTMLSelectElement>) =>
+    setMake(evt.target.value);
+
+  return (
+    <div className="w-full">
+      <select key="car-make-select" onChange={onChangeMake}>
+        {makes.map((make) => {
+          return (
+            <option key={make} value={make}>
+              {make}
+            </option>
+          );
+        })}
+      </select>
+      <CarInput validation={validation} setValue={setModel} value={model} />
+    </div>
+  );
+}
+
+//TODO: Refactor input into own component to be able to use it for any situation
+function CarInput({
+  value,
+  validation,
+  setValue,
+}: {
+  validation: { message: string; isValid: boolean } | undefined;
+  value: string;
+  setValue: (value: string) => void;
+}) {
+  const [focused, setFocused] = useState<boolean>(false);
+
+  return (
+    <div className="w-100">
+      <div
+        className="w-100 border-0 mt-2 p-2 rounded"
+        style={{
+          backgroundColor: focused
+            ? Colors.background.selected
+            : Colors.background.default,
+          color: focused ? Colors.input.selected : Colors.input.default,
+        }}
+      >
+        <input
+          pattern="[0-9]"
+          type="text"
+          className="w-100 border-0 text-start"
+          style={{
+            backgroundColor: "inherit",
+            outline: "none",
+            color: "inherit",
+          }}
+          value={value}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
+          onChange={(e: ChangeEvent<HTMLInputElement>) => {
+            setValue(e.target.value);
+          }}
+        />
+      </div>
+      {focused && validation !== undefined && !validation.isValid && (
+        <span className="text-small text-danger">{validation.message}</span>
+      )}
+    </div>
+  );
+}
