@@ -17,6 +17,14 @@ export default function SurveyForm() {
 
   const question = questions[questionIndex];
 
+  useEffect(() => {
+    const question = questions[questionIndex];
+    if (question && question.canShow && question.canShow(questions)) {
+      console.log(question && question.canShow(questions));
+      setQuestionIndex((index) => index + 1);
+    }
+  }, [questionIndex, questions]);
+
   if (questionIndex >= questions.length) {
     return (
       <EndOfSurvey
@@ -32,8 +40,6 @@ export default function SurveyForm() {
       lastQuestionAnswered: questions[questionIndex - 1],
       questions: questions,
     });
-
-    console.log(optOut);
 
     if (optOut) {
       return (
