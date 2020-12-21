@@ -1,8 +1,7 @@
-// import logo from "./logo.svg";
 import SurveyForm from "./SurveyForm";
+import "./styles.css";
 
-//TODO: Integrate FlowJS
-//TODO: Use a Context?
+//TODO: Integrate ESLint
 
 function App() {
   return (
