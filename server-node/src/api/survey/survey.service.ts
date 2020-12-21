@@ -8,7 +8,11 @@ import { SurveyIds } from './survey.types';
 export class SurveyService {
   constructor(private readonly databaseService: DatabaseService) {}
 
-  async save(surveyId: SurveyIds, surveyData: any): Promise<boolean> {
+  async save(
+    surveyId: SurveyIds,
+    groupId: number,
+    surveyData: any,
+  ): Promise<boolean> {
     let collectionName: CollectionNames;
     switch (surveyId) {
       case 'survey_vehicle_01':
@@ -19,7 +23,10 @@ export class SurveyService {
         throw new SurveyException('SURVEY_NOT_FOUND');
     }
 
-    await this.databaseService.insert<any>(collectionName, surveyData);
+    await this.databaseService.insert<any>(collectionName, {
+      ...surveyData,
+      groupId,
+    });
 
     return true;
   }

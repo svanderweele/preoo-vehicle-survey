@@ -8,8 +8,16 @@ type QuestionKey =
   | "carCountInFamily"
   | "carData";
 
+export const SurveyGroups = {
+  UNDER_EIGHTEEN: 0,
+  PREFER_OTHER_MEANS_OF_TRANSPORT: 1,
+  IS_THIS_YOUR_FIRST_CAR: 2,
+  OTHER_RESPONDENTS: 3,
+};
+
 export interface RequestSaveSurvey {
   surveyId: string;
+  groupId: number;
   data: {
     age?: string;
     gender?: string;
@@ -23,8 +31,13 @@ export interface RequestSaveSurvey {
 }
 
 export class RequestSaveSurvey {
-  constructor(surveyId: "survey_vehicle_01", questions: Question[]) {
+  constructor(
+    surveyId: "survey_vehicle_01",
+    groupId: number,
+    questions: Question[]
+  ) {
     this.surveyId = surveyId;
+    this.groupId = groupId;
     this.data = {
       age: getAnswer(questions, "age"),
       gender: getAnswer(questions, "gender"),
@@ -37,6 +50,11 @@ export class RequestSaveSurvey {
       ),
       carCountInFamily: getAnswer(questions, "carCountInFamily"),
     };
+
+    const carDataString = getAnswer(questions, "carData");
+    if (carDataString) {
+      this.data.carData = JSON.parse(carDataString);
+    }
   }
 }
 
@@ -59,26 +77,36 @@ export function shouldOptOut({
 }: {
   lastQuestionAnswered: Question;
   questions: Question[];
-}): string | null {
+}): { message: string; groupId: number } | null {
+  let message: string | null = null;
+  let groupId: number | null = null;
   if (lastQuestionAnswered.key === "gender") {
     const age = getAnswer(questions, "age");
     if (age && parseInt(age) < 18) {
-      return "Thank you for taking the time to submit the survey.";
+      message = "Thank you for taking the time to submit the survey.";
+      groupId = SurveyGroups.UNDER_EIGHTEEN;
     }
   }
 
   if (lastQuestionAnswered.key === "doesOwnDrivingLicense") {
     const doesOwnDrivingLicense = getAnswer(questions, "doesOwnDrivingLicense");
     if (doesOwnDrivingLicense && doesOwnDrivingLicense !== "Yes") {
-      return "Thank you for taking the time to submit the survey.";
+      message = "Thank you for taking the time to submit the survey.";
+      groupId = SurveyGroups.PREFER_OTHER_MEANS_OF_TRANSPORT;
     }
   }
 
   if (lastQuestionAnswered.key === "isFirstCar") {
     const isFirstCar = getAnswer(questions, "isFirstCar");
     if (isFirstCar && isFirstCar === "Yes") {
-      return "We are targeting more experienced clients, thank you for your interest!";
+      message =
+        "We are targeting more experienced clients, thank you for your interest!";
+      groupId = SurveyGroups.IS_THIS_YOUR_FIRST_CAR;
     }
+  }
+
+  if (message !== null && groupId !== null) {
+    return { message, groupId };
   }
 
   return null;
@@ -88,7 +116,7 @@ export class Question {
   title: string;
   key: QuestionKey;
   type: "input" | "choice" | "car_select";
-  answer: string | undefined;
+  answer: any | undefined;
   canShow?: (questions: Question[]) => boolean;
 
   constructor(
@@ -139,6 +167,29 @@ export class ChoiceQuestion extends Question {
   }
 }
 
+export class CarMakeQuestion extends Question {
+  makes: string[];
+  validate: (
+    make: string,
+    model: string
+  ) => { message: string; isValid: boolean };
+
+  constructor(
+    key: QuestionKey,
+    title: string,
+    makes: string[],
+    validate: (
+      make: string,
+      model: string
+    ) => { message: string; isValid: boolean },
+    canShow?: (questions: Question[]) => boolean
+  ) {
+    super(key, title, "car_select", canShow);
+    this.makes = makes;
+    this.validate = validate;
+  }
+}
+
 const questions: Question[] = [
   new InputQuestion(
     "age",
@@ -167,7 +218,7 @@ const questions: Question[] = [
       const age = getAnswer(questions, "age");
       if (age) {
         const parsedAge = parseInt(age);
-        return parsedAge >= 18 && parsedAge <= 25;
+        return parsedAge > 25;
       }
 
       return true;
@@ -189,6 +240,25 @@ const questions: Question[] = [
     (value) => true,
     /^(|[0-9])+$/,
     ""
+  ),
+  new CarMakeQuestion(
+    "carData",
+    "Please list your family's vehicles.",
+    ["BMW", "Audi", "Vauxhall", "Toyota", "Tesla"],
+    (make: string, model: string) => {
+      let response = { isValid: true, message: "" };
+      if (make === "BMW") {
+        const firstPattern = /^(M)?(([0-9]{3})|(([0-9]{3})(i|d){1}))$/;
+        const secondPattern = /^(X|Z)\d{1}$/;
+
+        if (!(firstPattern.test(model) || secondPattern.test(model))) {
+          response.isValid = false;
+          response.message = "Invalid Model Suggested";
+        }
+      }
+
+      return response;
+    }
   ),
 ];
 

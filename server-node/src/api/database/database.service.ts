@@ -6,8 +6,8 @@ import { CollectionNames } from './database.types';
 
 @Injectable()
 export class DatabaseService {
-  password = 'Tea123';
-  databaseName = 'preoo';
+  password = process.env.DB_PASSWORD;
+  databaseName = process.env.DB_NAME;
   url = `mongodb+srv://Simon:${this.password}@cluster0.n4iai.gcp.mongodb.net/${this.databaseName}>?retryWrites=true&w=majority`;
 
   async connect(): Promise<MongoClient> {
