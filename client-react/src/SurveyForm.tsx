@@ -5,6 +5,7 @@ import AllQuestions, {
   ChoiceQuestion,
   InputQuestion,
   Question,
+  SurveyGroups,
 } from "./Questions";
 
 //TODO: Added final question Model/Make plus regex
@@ -19,6 +20,7 @@ export default function SurveyForm() {
   if (questionIndex >= questions.length) {
     return (
       <EndOfSurvey
+        groupId={SurveyGroups.OTHER_RESPONDENTS}
         questions={questions}
         message={"Thank you for taking the time to take the survey."}
       />
@@ -26,12 +28,21 @@ export default function SurveyForm() {
   }
 
   if (questionIndex > 0) {
-    const optOutMessage = shouldOptOut({
+    const optOut = shouldOptOut({
       lastQuestionAnswered: questions[questionIndex - 1],
       questions: questions,
     });
-    if (optOutMessage) {
-      return <EndOfSurvey questions={questions} message={optOutMessage} />;
+
+    console.log(optOut);
+
+    if (optOut) {
+      return (
+        <EndOfSurvey
+          questions={questions}
+          message={optOut.message}
+          groupId={optOut.groupId}
+        />
+      );
     }
   }
 
@@ -106,15 +117,20 @@ export default function SurveyForm() {
   );
 }
 
-function EndOfSurvey(props: { questions: Question[]; message: string }) {
+function EndOfSurvey(props: {
+  questions: Question[];
+  message: string;
+  groupId: number;
+}) {
   useEffect(() => {
     const save = async () => {
       const requestBody: RequestSaveSurvey = new RequestSaveSurvey(
         "survey_vehicle_01",
+        props.groupId,
         props.questions
       );
 
-      await fetch("http://localhost:3000/surveys", {
+      await fetch(`${process.env.REACT_APP_API_URL}/surveys`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -122,12 +138,13 @@ function EndOfSurvey(props: { questions: Question[]; message: string }) {
         body: JSON.stringify({
           data: requestBody.data,
           surveyId: requestBody.surveyId,
+          groupId: requestBody.groupId,
         }),
       });
     };
 
     save();
-  }, [props.questions]);
+  }, [props.groupId, props.questions]);
 
   return (
     <div className="container p-4">
