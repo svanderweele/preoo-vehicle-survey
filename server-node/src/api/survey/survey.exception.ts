@@ -1,8 +1,6 @@
 import { HttpStatus } from '@nestjs/common';
-import {
-  CustomException,
-  SurveyErrorCode,
-} from 'src/exceptions/CustomException';
+import { CustomException } from 'src/exceptions/CustomException';
+import { SurveyErrorCode } from './survey.types';
 
 export class SurveyException extends CustomException {
   constructor(code: SurveyErrorCode) {

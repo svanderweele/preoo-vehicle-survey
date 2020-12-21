@@ -1,5 +1,6 @@
 import { HttpStatus } from '@nestjs/common';
-import { CustomException, DatabaseErrorCodes } from './CustomException';
+import { CustomException } from '../../exceptions/CustomException';
+import { DatabaseErrorCodes } from './database.types';
 
 export default class DatabaseException extends CustomException {
   constructor(code: DatabaseErrorCodes) {
